@@ -77,7 +77,7 @@ int main()
 
 # Step 1 - Compile and Run
 
-Use "make" to compile and ".seg" to run.
+Use "make" to compile and "./seg" to run.
 
 ```bash
 mjcleme:~/workspace/segfault (master) $ make
@@ -113,7 +113,7 @@ For bug reporting instructions, please see:
 ---Type <return> to continue, or q <return> to quit---
 ```
 
-Hit <return> to continue. Now you'll see the gdb command shell:
+Hit return to continue. Now you'll see the gdb command shell:
 
 ```bash
 <http://www.gnu.org/software/gdb/bugs/>.
@@ -125,7 +125,7 @@ Reading symbols from ./seg...(no debugging symbols found)...done.
 (gdb) 
 ```
 
-In the GDB command shell, type "run" and hit <return>. This will run the executable "./seg" that was passed into gdb.
+In the GDB command shell, type "run" and hit return. This will run the executable "./seg" that was passed into gdb.
 
 ```bash
 (gdb) run
@@ -138,7 +138,7 @@ Program received signal SIGABRT, Aborted.
 (gdb) 
 ```
 
-So now you'll see the same error that you saw before. The question is where in the code did you end up? So type the command "where" and hit <return>.
+So now you'll see the same error that you saw before. The question is where in the code did you end up? So type the command "where" and hit return.
 
 ```bash
 (gdb) where
@@ -154,5 +154,62 @@ So now you'll see the same error that you saw before. The question is where in t
 (gdb) 
 ```
 
-You can see that steps #0 through #4 are from C library code. Step #5 tells you that the program halted in your "clear()" method.
+You can see that steps #0 through #4 are from C library code. Step #5 tells you that the program halted in your "clear()" method. Excellent! Now you know to look in your clear method!
 
+To quit GDB, use the "quit" command and then "y" when it asks you if you are sure.
+
+# Step 3 - Fix clear() Method
+
+You realize that you're calling delete when you don't need to. You change this:
+
+```c++
+void clear()
+{
+    delete [] vector;
+    capacity = 0;
+    count = 0;
+}
+```
+
+into this:
+
+```c++
+void clear()
+{
+    if(capacity > 0)
+        delete [] vector;
+    capacity = 0;
+    count = 0;
+}
+```
+
+# Step 4 - Compile and Run
+
+Compile and run again:
+
+```bash
+mjcleme:~/workspace/segfault (master) $ make clean
+rm -f seg
+mjcleme:~/workspace/segfault (master) $ make
+g++ -o seg *.cpp
+mjcleme:~/workspace/segfault (master) $ ./seg
+Segmentation fault
+```
+
+Another segfault. So what do you do? GDB again!
+
+```bash
+mjcleme:~/workspace/segfault (master) $ gdb ./seg
+...
+(gdb) run
+Starting program: /home/ubuntu/workspace/segfault/seg 
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000400e07 in IntVector::append(int) ()
+(gdb) where
+#0  0x0000000000400e07 in IntVector::append(int) ()
+#1  0x0000000000400ca3 in main ()
+(gdb) 
+```
+
+Now the problem is in the "append" method. Go check it out!
