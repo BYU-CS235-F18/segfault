@@ -213,3 +213,146 @@ Program received signal SIGSEGV, Segmentation fault.
 ```
 
 Now the problem is in the "append" method. Go check it out!
+
+# Step 5 - Fix append(int i) Method
+
+You see the current implemenation of append:
+
+```c++
+void append(int i)
+{
+    vector[count] = i;
+    count++;
+}
+```
+
+The problem must be accessing the index "count" within "vector". You forgot to do a capacity check. Throw one in!
+
+```c++
+void append(int i)
+{
+    if(count >= capacity)
+        setCapacity(capacity*2);
+    vector[count] = i;
+    count++;
+}
+```
+
+There we go! Now compile and run again:
+
+```bash
+mjcleme:~/workspace/segfault (master) $ make clean
+rm -f seg
+mjcleme:~/workspace/segfault (master) $ make
+g++ -o seg *.cpp
+mjcleme:~/workspace/segfault (master) $ ./seg
+10
+```
+
+Confound it! It's running now, but just printing "10" instead of the expected "3, 7, 10". The program is running to completion, so now using "where" in GDB isn't going to help you find the problem.
+
+# Step 6 - Run with Valgrind
+
+Try running it with valgrind to see what valgrind tells you:
+
+```bash
+mjcleme:~/workspace/segfault (master) $ valgrind ./seg
+==2608== Memcheck, a memory error detector
+==2608== Copyright (C) 2002-2013, and GNU GPL'd, by Julian Seward et al.
+==2608== Using Valgrind-3.10.1 and LibVEX; rerun with -h for copyright info
+==2608== Command: ./seg
+==2608== 
+==2608== Conditional jump or move depends on uninitialised value(s)
+==2608==    at 0x400E9D: IntVector::clear() (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E05: IntVector::IntVector() (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CD1: main (in /home/ubuntu/workspace/segfault/seg)
+==2608== 
+==2608== Invalid write of size 4
+==2608==    at 0x400E74: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CE2: main (in /home/ubuntu/workspace/segfault/seg)
+==2608==  Address 0x5a41c80 is 0 bytes after a block of size 0 alloc'd
+==2608==    at 0x4C2B800: operator new[](unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2608==    by 0x400F25: IntVector::setCapacity(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E59: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CE2: main (in /home/ubuntu/workspace/segfault/seg)
+==2608== 
+==2608== Invalid write of size 4
+==2608==    at 0x400E74: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CF3: main (in /home/ubuntu/workspace/segfault/seg)
+==2608==  Address 0x5a41cc0 is 0 bytes after a block of size 0 alloc'd
+==2608==    at 0x4C2B800: operator new[](unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2608==    by 0x400F25: IntVector::setCapacity(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E59: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CF3: main (in /home/ubuntu/workspace/segfault/seg)
+==2608== 
+==2608== Invalid write of size 4
+==2608==    at 0x400E74: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400D04: main (in /home/ubuntu/workspace/segfault/seg)
+==2608==  Address 0x5a41d00 is 0 bytes after a block of size 0 alloc'd
+==2608==    at 0x4C2B800: operator new[](unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2608==    by 0x400F25: IntVector::setCapacity(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E59: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400D04: main (in /home/ubuntu/workspace/segfault/seg)
+==2608== 
+==2608== Invalid read of size 4
+==2608==    at 0x400FB4: IntVector::toString() (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400D17: main (in /home/ubuntu/workspace/segfault/seg)
+==2608==  Address 0x5a41d00 is 0 bytes after a block of size 0 alloc'd
+==2608==    at 0x4C2B800: operator new[](unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2608==    by 0x400F25: IntVector::setCapacity(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E59: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400D04: main (in /home/ubuntu/workspace/segfault/seg)
+==2608== 
+10
+==2608== 
+==2608== HEAP SUMMARY:
+==2608==     in use at exit: 72,704 bytes in 4 blocks
+==2608==   total heap usage: 6 allocs, 2 frees, 73,268 bytes allocated
+==2608== 
+==2608== LEAK SUMMARY:
+==2608==    definitely lost: 0 bytes in 3 blocks
+==2608==    indirectly lost: 0 bytes in 0 blocks
+==2608==      possibly lost: 0 bytes in 0 blocks
+==2608==    still reachable: 72,704 bytes in 1 blocks
+==2608==         suppressed: 0 bytes in 0 blocks
+==2608== Rerun with --leak-check=full to see details of leaked memory
+==2608== 
+==2608== For counts of detected and suppressed errors, rerun with: -v
+==2608== Use --track-origins=yes to see where uninitialised values come from
+==2608== ERROR SUMMARY: 5 errors from 5 contexts (suppressed: 0 from 0)
+```
+
+Lots of invalid reads and writes. Notice this Valgrind error:
+
+```bash
+==2608==  Address 0x5a41cc0 is 0 bytes after a block of size 0 alloc'd
+==2608==    at 0x4C2B800: operator new[](unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2608==    by 0x400F25: IntVector::setCapacity(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400E59: IntVector::append(int) (in /home/ubuntu/workspace/segfault/seg)
+==2608==    by 0x400CF3: main (in /home/ubuntu/workspace/segfault/seg)
+```
+
+Oops. You allocated an array of size 0 in your setCapacity function. That's no good. I guess your capacity is starting at 0 and then when the append method doubles it ... it's still 0. Bummer. You need to initialize it as a positive number.
+
+# Step 7 - Fix the Constructor
+
+```c++
+IntVector()
+{
+    clear();
+    setCapacity(100);
+}
+```
+
+Now compile and run:
+
+```bash
+mjcleme:~/workspace/segfault (master) $ make clean
+rm -f seg
+mjcleme:~/workspace/segfault (master) $ make
+g++ -o seg *.cpp
+mjcleme:~/workspace/segfault (master) $ ./seg 
+3, 7, 10
+```
+
+It works! GDB and Valgrind saved the day! Or at least did something to help with debugging.
