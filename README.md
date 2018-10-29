@@ -356,3 +356,5 @@ mjcleme:~/workspace/segfault (master) $ ./seg
 ```
 
 It works! GDB and Valgrind saved the day! Or at least did something to help with debugging.
+
+- Designed Fall 2018 by Nate Fox
