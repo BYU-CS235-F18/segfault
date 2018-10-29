@@ -14,7 +14,6 @@ public:
     IntVector()
     {
         clear();
-        setCapacity(100);
     }
     
     ~IntVector()
@@ -24,16 +23,13 @@ public:
     
     void append(int i)
     {
-        if(count >= capacity)
-            setCapacity(capacity*2);
         vector[count] = i;
         count++;
     }
 
     void clear()
     {
-        if(capacity > 0)
-            delete [] vector;
+        delete [] vector;
         capacity = 0;
         count = 0;
     }
